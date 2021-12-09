@@ -1,0 +1,12 @@
+[requires]
+catch2/2.13.7
+
+[generators]
+cmake
+gcc
+txt
+cmake_find_package
+
+[options]
+
+[imports]
