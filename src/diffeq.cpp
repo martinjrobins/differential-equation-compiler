@@ -4,49 +4,54 @@
 
 using namespace peg;
 using namespace std;
+ 
+/*
+ * Utilities
+ */
+string format_error_message(size_t ln, size_t col,
+                            const string& msg) {
+  stringstream ss;
+  ss << ln << ":" << col << ": " << msg << endl;
+  return ss.str();
+}
 
-int main(void) {
-  // (2) Make a parser
+int main(int argc, const char **argv) {
+
   parser parser(R"(
-        # Grammar for Calculator...
-        Additive    <- Multitive '+' Additive / Multitive
-        Multitive   <- Primary '*' Multitive / Primary
-        Primary     <- '(' Additive ')' / Number
-        Number      <- < [0-9]+ >
-        %whitespace <- [ \t]*
-    )");
+    expression <- sign term (term_op term)*
+    term       <- factor (factor_op factor)*
+    factor     <- ident / number / '(' expression ')' 
+
+    sign       <- < [-+]? > 
+    term_op    <- < [-+] > 
+    factor_op  <- < [*/] > 
+
+    ident      <- < [a-z] [a-z0-9]* > 
+    number     <- < [0-9]+ >
+
+    %whitespace <- [ \t\r\n]*
+  )");
 
   assert(static_cast<bool>(parser) == true);
 
-  // (3) Setup actions
-  parser["Additive"] = [](const SemanticValues &vs) {
-    switch (vs.choice()) {
-    case 0: // "Multitive '+' Additive"
-      return any_cast<int>(vs[0]) + any_cast<int>(vs[1]);
-    default: // "Multitive"
-      return any_cast<int>(vs[0]);
-    }
+  parser.enable_ast();
+
+  parser.log = [&](size_t ln, size_t col, const string& msg) {
+    cerr << format_error_message(ln, col, msg) << endl;
   };
 
-  parser["Multitive"] = [](const SemanticValues &vs) {
-    switch (vs.choice()) {
-    case 0: // "Primary '*' Multitive"
-      return any_cast<int>(vs[0]) * any_cast<int>(vs[1]);
-    default: // "Primary"
-      return any_cast<int>(vs[0]);
-    }
-  };
+  auto expr = argv[1];
+ 
+  std::shared_ptr<Ast> ast;
+  if (parser.parse(expr, ast)) {
+    std::cout << ast_to_s(ast);
+    ast = parser.optimize_ast(ast);
+    std::cout << ast_to_s(ast);
+    return 0;
+  }
 
-  parser["Number"] = [](const SemanticValues &vs) {
-    return vs.token_to_number<int>();
-  };
+  
+  std::cout << "syntax error..." << std::endl;
 
-  // (4) Parse
-  parser.enable_packrat_parsing(); // Enable packrat parsing.
-
-  int val;
-  parser.parse(" (1 + 2) * 3 ", val);
-
-  assert(val == 9);
 }
 
