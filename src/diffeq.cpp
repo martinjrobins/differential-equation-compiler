@@ -20,11 +20,11 @@ int main(int argc, const char **argv) {
   parser parser(R"(
     model <- 'model' ident equations definitions solve
 
-    solve <- 'solve' expression (';' expression )*
+    solve <- 'solve' expression (',' expression )*
 
     definitions         <- 'where' definition (',' definition)*
     definition          <-  domain_definition / variable_definition
-    domain_definition   <- 'dom' ident 'in' range
+    domain_definition   <- ident 'in' range
     variable_definition <- ident ':' domain '->' domain
 
     domain          <- constant_domain / real_domain / ident
@@ -32,7 +32,7 @@ int main(int argc, const char **argv) {
     real_domain     <- 'R' ('^' integer)?
     range           <- '[' real ',' real ']' ('^' integer)?
 
-    equations         <- equation (';' equation)*
+    equations         <- equation (',' equation)*
     equation          <- rate_equation / initial_condition
     rate_equation     <- 'd' ident '/' 'd' ident '=' expression
     initial_condition <- fixed_variable '=' expression
