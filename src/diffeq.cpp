@@ -18,16 +18,37 @@ string format_error_message(size_t ln, size_t col,
 int main(int argc, const char **argv) {
 
   parser parser(R"(
-    expression <- sign term (term_op term)*
-    term       <- factor (factor_op factor)*
-    factor     <- ident / number / '(' expression ')' 
+    model <- 'model' ident equations definitions solve
 
-    sign       <- < [-+]? > 
-    term_op    <- < [-+] > 
-    factor_op  <- < [*/] > 
+    solve <- 'solve' expression (';' expression )*
 
-    ident      <- < [a-z] [a-z0-9]* > 
-    number     <- < [0-9]+ >
+    definitions         <- 'where' definition (',' definition)*
+    definition          <-  domain_definition / variable_definition
+    domain_definition   <- 'dom' ident 'in' range
+    variable_definition <- ident ':' domain '->' domain
+
+    domain          <- constant_domain / real_domain / ident
+    constant_domain <- '1'
+    real_domain     <- 'R' ('^' integer)?
+    range           <- '[' real ',' real ']' ('^' integer)?
+
+    equations         <- equation (';' equation)*
+    equation          <- rate_equation / initial_condition
+    rate_equation     <- 'd' ident '/' 'd' ident '=' expression
+    initial_condition <- fixed_variable '=' expression
+
+    expression     <- sign term (term_op term)*
+    term           <- factor (factor_op factor)*
+    factor         <- fixed_variable / ident / real / integer / '(' expression ')'
+    fixed_variable <- ident '(' real ')'
+
+    sign       <- < [-+]? >
+    term_op    <- < [-+] >
+    factor_op  <- < [*/] >
+
+    ident      <- < [a-z] [a-z0-9]* >
+    integer    <- < [0-9]+ >
+    real       <- < [0-9]+'.'[0-9]+ > / integer
 
     %whitespace <- [ \t\r\n]*
   )");
