@@ -18,35 +18,41 @@ string format_error_message(size_t ln, size_t col,
 int main(int argc, const char **argv) {
 
   parser parser(R"(
-    model <- 'model' ident equations definitions solve
+    model <- 'model' name '(' args ')' definitions? equations? solve
 
-    solve <- 'solve' expression (',' expression )*
+    args <- arg (',' arg)*
+    arg <- definition / ident
 
-    definitions         <- 'where' definition (',' definition)*
-    definition          <-  domain_definition / variable_definition
-    domain_definition   <- ident 'in' range
-    variable_definition <- ident ':' domain '->' domain
+    solve <- 'return' expression (',' expression )*
 
-    domain          <- constant_domain / real_domain / ident
+    definitions <- 'let' definition (',' definition)*
+    definition <-  domain_definition / variable_definition
+    domain_definition <- name 'in' range
+    variable_definition <- name ':' domain '->' domain
+
+    range <- '[' real ',' real ']' ('^' integer)?
+
+    domain <- constant_domain / real_domain / ident
     constant_domain <- '1'
-    real_domain     <- 'R' ('^' integer)?
-    range           <- '[' real ',' real ']' ('^' integer)?
+    real_domain <- 'R' ('^' integer)?
 
-    equations         <- equation (',' equation)*
-    equation          <- rate_equation / initial_condition
-    rate_equation     <- 'd' ident '/' 'd' ident '=' expression
-    initial_condition <- fixed_variable '=' expression
+    equations <- 'in' equation (',' equation)*
+    equation <- expression '=' expression
 
-    expression     <- sign term (term_op term)*
-    term           <- factor (factor_op factor)*
-    factor         <- fixed_variable / ident / real / integer / '(' expression ')'
-    fixed_variable <- ident '(' real ')'
+    call <- ident '(' expression ')'
+    sequence <- real ':' real ':' real
+    derivative <- 'd' ident '/' 'd' ident
+    expression <- sign term (term_op term)*
+    term       <- factor (factor_op factor)*
+    factor     <-  sum / sequence / derivative / call / ident / real / integer / '(' expression ')'
+    sum <- 'sum' '(' expression ')'
 
     sign       <- < [-+]? >
     term_op    <- < [-+] >
-    factor_op  <- < [*/] >
+    factor_op  <- < [*/^] >
 
-    ident      <- < [a-z] [a-z0-9]* >
+    ident      <- < name ('.' name)* >
+    name      <- < [a-z] [a-z0-9_]* >
     integer    <- < [0-9]+ >
     real       <- < [0-9]+'.'[0-9]+ > / integer
 
